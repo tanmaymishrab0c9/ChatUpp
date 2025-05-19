@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nik's Chat Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-800 min-h-screen">
+
+     <h1 class="text-5xl text-red-600 font-bold text-center mt-6">Chat Upp</h1>
+
+    <form id="form" class="flex flex-col items-center mt-6 space-y-3">
+        <input id="name"class="p-2 border border-gray-300 rounded w-50" type="text" placeholder="Enter name" required>
+        <input id="message"class="p-2 border border-gray-300 rounded w-50" type="text" placeholder="Enter message" required>
+        <button class="p-2 border border border-gray-300 bg-gray-100 rounded">Submit</button>
+    </form>
+
+    <div id="display"class="max-w-md mx-auto mt-6 space-y-2 px-4"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+        const socket=io();
+        const form = document.getElementById('form');
+        const name = document.getElementById('name');
+        const message = document.getElementById('message');
+        const display=document.getElementById('display');
+
+        form.addEventListener('submit',(e)=>{
+            e.preventDefault();
+        
+        const nm= name.value.trim();
+        const msg=message.value.trim();
+        if(nm&&msg){
+            socket.emit('send message', {name:nm, text:msg});
+            message.value='';
+        }
+        });
+
+        socket.on('send message', (data)=>{
+            const m=document.createElement('div');
+            m.className='bg-yellow-200 p-2';
+            m.innerHTML=`<b>${data.name}</b>:${data.text}`;
+            display.appendChild(m);
+            display.scrollTop=display.scrollHeight;
+        });
+    </script>
+</body>
+</html>
