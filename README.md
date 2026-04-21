@@ -4,6 +4,14 @@ A real-time chat application built with **Node.js**, **Express**, **MongoDB**, a
 
 ---
 
+## Live Demo
+https://chatroom-fq6p.onrender.com
+
+> ⚠️ May take ~30–50 seconds to wake up (Render free tier)
+
+> <img width="1919" height="806" alt="Screenshot 2026-04-21 161941" src="https://github.com/user-attachments/assets/c64d3fd8-0368-4389-9714-7a9b336198c1" />
+
+
 ## Features
 
 -  **JWT Authentication (HTTP + WebSocket)**  
