@@ -14,8 +14,8 @@ const server=http.createServer(app);
 
 // SOCKET.IO
 const io=new Server(server, {
-  cors: {
-    origin: "*",
+  cors:{
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
   },
 });
 

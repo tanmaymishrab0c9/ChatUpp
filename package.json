@@ -6,10 +6,10 @@
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["chat", "socket.io", "nodejs", "mongodb", "real-time"],
+  "author": "Tanmay Mishra",
   "license": "ISC",
-  "description": "",
+  "description": "Real-time chat application with JWT authentication and Socket.IO",
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
