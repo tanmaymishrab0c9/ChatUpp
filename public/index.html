@@ -1,50 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nik's Chat Room</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <title>ChatUpp</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-800 min-h-screen">
 
-     <h1 class="text-5xl text-red-600 font-bold text-center mt-6">Chat Upp</h1>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center">
 
-    <form id="form" class="flex flex-col items-center mt-6 space-y-3">
-        <input id="name"class="p-2 border border-gray-300 rounded w-50" type="text" placeholder="Enter name" required>
-        <input id="message"class="p-2 border border-gray-300 rounded w-50" type="text" placeholder="Enter message" required>
-        <button class="p-2 border border border-gray-300 bg-gray-100 rounded">Submit</button>
-    </form>
+  <h1 class="text-4xl font-bold mt-6">ChatUpp</h1>
 
-    <div id="display"class="max-w-md mx-auto mt-6 space-y-2 px-4"></div>
+  <!-- AUTH -->
+  <div class="mt-6 flex flex-col space-y-2">
+    <input id="email" placeholder="Email" class="p-2 rounded text-black">
+    <input id="password" type="password" placeholder="Password" class="p-2 rounded text-black">
 
-    <script src="/socket.io/socket.io.js"></script>
+    <div class="flex gap-2">
+      <button onclick="login()" class="bg-blue-500 px-4 py-2 rounded">Login</button>
+      <button onclick="register()" class="bg-green-500 px-4 py-2 rounded">Register</button>
+    </div>
+  </div>
 
-    <script>
-        const socket=io();
-        const form = document.getElementById('form');
-        const name = document.getElementById('name');
-        const message = document.getElementById('message');
-        const display=document.getElementById('display');
+  <!-- CHAT -->
+  <form id="form" class="mt-6 flex flex-col space-y-2 w-80">
+    <input id="message" placeholder="Enter message" class="p-2 rounded text-black">
+    <button class="bg-green-600 py-2 rounded">Send</button>
+  </form>
 
-        form.addEventListener('submit',(e)=>{
-            e.preventDefault();
-        
-        const nm= name.value.trim();
-        const msg=message.value.trim();
-        if(nm&&msg){
-            socket.emit('send message', {name:nm, text:msg});
-            message.value='';
+  <!-- DISPLAY -->
+  <div id="display" class="mt-6 w-96 bg-gray-800 p-4 rounded space-y-2 max-h-80 overflow-y-auto"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script>
+    let socket=null;
+    let token=localStorage.getItem("token") || "";
+    let currentUserId="";
+
+    const form=document.getElementById("form");
+    const messageInput=document.getElementById("message");
+    const display=document.getElementById("display");
+
+    //CONNECT SOCKET
+    function connectSocket() {
+      if (socket) return;
+
+      socket=io({
+        auth: { token }
+      });
+
+      socket.on("connect", () => {
+        console.log("Connected:", socket.id);
+      });
+
+      socket.on("connect_error", (err) => {
+        console.error(err.message);
+      });
+
+      socket.off("receive message");
+
+      socket.on("receive message", (data) => {
+        addMessage(data);
+      });
+    }
+
+    //LOGIN
+    async function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+      if (data.token) {
+        token = data.token;
+        currentUserId = data.userId;
+
+        localStorage.setItem("token", token);
+
+        alert("Login successful ");
+
+        // reset socket
+        if (socket) {
+          socket.off("receive message");
+          socket.disconnect();
+          socket=null;
         }
+
+        connectSocket();
+        loadMessages();
+
+      } else {
+        alert("Login failed ");
+      }
+    }
+
+    // REGISTER
+    async function register() {
+      const email=document.getElementById("email").value;
+      const password=document.getElementById("password").value;
+
+      const res=await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: email.split("@")[0],
+          email,
+          password
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.message) {
+        alert("Registered successfully ");
+      } else {
+        alert("Registration failed ");
+      }
+    }
+
+    //LOAD MESSAGES 
+    async function loadMessages() {
+      try {
+        if (!token) {
+          console.log("No token, skipping load");
+          return;
+        }
+
+        const res=await fetch("/api/messages?page=1", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         });
 
-        socket.on('send message', (data)=>{
-            const m=document.createElement('div');
-            m.className='bg-yellow-200 p-2';
-            m.innerHTML=`<b>${data.name}</b>:${data.text}`;
-            display.appendChild(m);
-            display.scrollTop=display.scrollHeight;
-        });
-    </script>
+        const messages=await res.json();
+
+        //console.log("MESSAGES:", messages);
+
+        if (!Array.isArray(messages)) {
+          console.error("Expected array but got:", messages);
+          return;
+        }
+
+        display.innerHTML="";
+
+        messages.reverse().forEach(msg => addMessage(msg));
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    //RENDER
+    function addMessage(data) {
+      const div=document.createElement("div");
+
+      const isMe=data.sender?._id===currentUserId;
+
+      div.className=isMe
+        ? "bg-green-300 text-black p-2 rounded text-right"
+        : "bg-yellow-200 text-black p-2 rounded";
+
+      const time=new Date(data.createdAt).toLocaleTimeString();
+
+      div.innerHTML=`
+        <b>${data.sender?.username || "User"}</b>: ${data.content}
+        <div style="font-size:10px">${time}</div>
+      `;
+
+      display.appendChild(div);
+      display.scrollTop=display.scrollHeight;
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const msg=messageInput.value.trim();
+
+      if (!token) {
+        alert("Login first");
+        return;
+      }
+
+      if (!msg) return;
+
+      socket.emit("send message", { message: msg });
+      messageInput.value="";
+    });
+  </script>
+
 </body>
 </html>
